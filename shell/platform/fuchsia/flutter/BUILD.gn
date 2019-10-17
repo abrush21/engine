@@ -255,6 +255,7 @@ executable("flutter_runner_unittests") {
     "accessibility_bridge.cc",
     "accessibility_bridge.h",
     "accessibility_bridge_unittest.cc",
+    "accessibility_integration_test.cc",
     "flutter_runner_fakes.h",
     "logging.h",
     "platform_view.cc",
