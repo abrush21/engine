@@ -110,7 +110,7 @@ Dart_Handle SendPlatformMessage(Dart_Handle window,
                                 Dart_Handle callback,
                                 Dart_Handle data_handle) {
   UIDartState* dart_state = UIDartState::Current();
-
+  FML_LOG(ERROR) << "Sending platform message with name: " << name;
   if (!dart_state->platform_configuration()) {
     return tonic::ToDart(
         "Platform messages can only be sent from the main isolate");
@@ -128,10 +128,11 @@ Dart_Handle SendPlatformMessage(Dart_Handle window,
   } else {
     tonic::DartByteData data(data_handle);
     const uint8_t* buffer = static_cast<const uint8_t*>(data.data());
+    auto message = fml::MakeRefCounted<PlatformMessage>(
+            name, std::vector<uint8_t>(buffer, buffer + data.length_in_bytes()), response);
+    FML_LOG(ERROR) << "Received message on channel: " << message->channel();
     dart_state->platform_configuration()->client()->HandlePlatformMessage(
-        fml::MakeRefCounted<PlatformMessage>(
-            name, std::vector<uint8_t>(buffer, buffer + data.length_in_bytes()),
-            response));
+            std::move(message));
   }
 
   return Dart_Null();

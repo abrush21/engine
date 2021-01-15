@@ -86,7 +86,7 @@ PlatformView::PlatformView(
       ime_client_(this),
       vsync_offset_(std::move(vsync_offset)),
       vsync_event_handle_(vsync_event_handle) {
-  // Register all error handlers.
+        // Register all error handlers.
   SetInterfaceErrorHandler(session_listener_binding_, "SessionListener");
   SetInterfaceErrorHandler(ime_, "Input Method Editor");
   SetInterfaceErrorHandler(text_sync_service_, "Text Sync Service");
@@ -599,6 +599,7 @@ void PlatformView::HandlePlatformMessage(
     return;
   }
   const std::string channel = message->channel();
+  FML_LOG(ERROR) << "Message received on channel: " << channel;
   auto found = platform_message_handlers_.find(channel);
   if (found == platform_message_handlers_.end()) {
     const bool already_errored = unregistered_channels_.count(channel);
@@ -649,6 +650,36 @@ void PlatformView::UpdateSemantics(
 void PlatformView::HandleAccessibilityChannelPlatformMessage(
     fml::RefPtr<flutter::PlatformMessage> message) {
   FML_DCHECK(message->channel() == kAccessibilityChannel);
+  FML_LOG(INFO) << "Accessibility message received";
+  const auto& data = message->data();
+  rapidjson::Document document;
+  document.Parse(reinterpret_cast<const char*>(data.data()), data.size());
+  if (document.HasParseError() || !document.IsObject()) {
+    return;
+  }
+
+  auto root = document.GetObject();
+  auto type = root.FindMember("type");
+  if (type == root.MemberEnd() || !type->value.IsString()) {
+    FML_LOG(INFO) << "Accessibility message NOT type 'announce'";
+    return;
+  }
+
+  FML_LOG(INFO) << "Accessibility message type: " << type->value.GetString();
+
+  if (type->value == "announce") {
+    auto message = root.FindMember("data");
+    if (message == root.MemberEnd() || !type->value.IsString()) {
+      FML_LOG(INFO) << "Accessibility message has no data";
+      return;
+    }
+
+    FML_LOG(INFO) << "Accessibility message data: " << message->value.GetString();
+
+    accessibility_bridge_->RequestAnnounce(message->value.GetString());
+  }
+
+  message->response()->CompleteEmpty();
 }
 
 // Channel handler for kFlutterPlatformChannel
